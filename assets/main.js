@@ -1,4 +1,4 @@
-import { vertexSource, fragmentSource } from './shader.js?v=15e61a8509e9';
+import { vertexSource, fragmentSource, fieldFragmentSource } from './shader.js?v=4bc47a37784f';
 
 const canvas = document.querySelector('#scene');
 const heading = document.querySelector('h1');
@@ -27,15 +27,23 @@ function start(gl) {
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
     return shader;
   }
-  const program = gl.createProgram();
-  const vertex = compile(gl.VERTEX_SHADER, vertexSource);
-  const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
-  gl.deleteShader(vertex);
-  gl.deleteShader(fragment);
+  function makeProgram(source) {
+    const program = gl.createProgram();
+    const vertex = compile(gl.VERTEX_SHADER, vertexSource);
+    const fragment = compile(gl.FRAGMENT_SHADER, source);
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
+    gl.bindAttribLocation(program, 0, 'position');
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
+    return program;
+  }
+  const program = makeProgram(fragmentSource);
+  const fieldProgram = makeProgram(fieldFragmentSource);
+  const fieldTime = gl.getUniformLocation(fieldProgram, 'time');
+  const fieldViewport = gl.getUniformLocation(fieldProgram, 'viewport');
   gl.useProgram(program);
 
   const quad = gl.createBuffer();
@@ -45,7 +53,7 @@ function start(gl) {
   gl.enableVertexAttribArray(position);
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-  const names = ['resolution', 'viewport', 'logo', 'time', 'pointer', 'hover', 'reveal', 'pulse', 'distanceMap', 'characters'];
+  const names = ['resolution', 'viewport', 'logo', 'time', 'pointer', 'hover', 'reveal', 'pulse', 'distanceMap', 'characters', 'fieldMap', 'fieldSize', 'metalRamp'];
   const uniforms = Object.fromEntries(names.map(name => [name, gl.getUniformLocation(program, name)]));
   const mask = makeWordmark();
   texture(0, mask.width, mask.height, mask.data, gl.RGBA, gl.LINEAR);
@@ -65,6 +73,36 @@ function start(gl) {
   texture(1, atlas.width, atlas.height, atlas, gl.RGBA, gl.LINEAR);
   gl.uniform1i(uniforms.characters, 1);
 
+  // A small baked reflection ramp replaces per-pixel lighting powers and trig.
+  const ramp = new Uint8Array(256 * 4);
+  for (let i = 0; i < 256; i++) {
+    const angle = (i / 255 - .5) / .48;
+    const horizon = Math.max(0, Math.min(1, (angle + .2) / .48));
+    const blend = horizon * horizon * (3 - 2 * horizon);
+    const ribbon = (.5 + .5 * Math.sin(angle * 12 + 2)) ** 3 * .75;
+    const cyan = Math.exp(-(((angle - .2) / .3) ** 2));
+    const violet = Math.exp(-(((angle + .25) / .25) ** 2));
+    for (let c = 0; c < 3; c++) {
+      const sky = [.035, .06, .095][c] * (1 - blend) + [.48, .62, .70][c] * blend;
+      const value = sky * (1 - ribbon) + [.78, .88, .92][c] * ribbon
+        + [.025, .10, .10][c] * cyan + [.06, .025, .085][c] * violet;
+      ramp[i * 4 + c] = Math.round(Math.min(1, value) * 255);
+    }
+    ramp[i * 4 + 3] = 255;
+  }
+  texture(2, 256, 1, ramp, gl.RGBA, gl.LINEAR);
+  gl.uniform1i(uniforms.metalRamp, 2);
+
+  const fieldTexture = texture(3, 1, 1, null, gl.RGBA, gl.NEAREST);
+  const fieldBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fieldBuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fieldTexture, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Cannot render the character field.');
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.uniform1i(uniforms.fieldMap, 3);
+  let fieldWidth = 1;
+  let fieldHeight = 1;
+
   function texture(unit, width, height, data, format, filter) {
     gl.activeTexture(gl.TEXTURE0 + unit);
     const value = gl.createTexture();
@@ -76,6 +114,7 @@ function start(gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return value;
   }
 
   let elapsed = 0;
@@ -84,17 +123,21 @@ function start(gl) {
   let frame = null;
   let paused = motion.matches;
   let lost = false;
-  let quality = 1;
-  let sampleTime = 0;
-  let sampleFrames = 0;
-  let smoothTime = 0;
-  const coarsePointer = matchMedia('(pointer: coarse)');
   const target = { x: 0, y: 0, active: 0 };
   const pointer = { x: 0, y: 0, active: 0 };
   const pulse = { x: .5, y: .5, started: -10 };
 
   function draw() {
     if (lost) return;
+    gl.useProgram(fieldProgram);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fieldBuffer);
+    gl.viewport(0, 0, fieldWidth, fieldHeight);
+    gl.uniform1f(fieldTime, elapsed);
+    gl.uniform2f(fieldViewport, innerWidth, innerHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.useProgram(program);
     gl.uniform1f(uniforms.time, elapsed);
     gl.uniform2f(uniforms.pointer, pointer.x, pointer.y);
     gl.uniform1f(uniforms.hover, pointer.active);
@@ -105,10 +148,8 @@ function start(gl) {
 
   function resize(render = true) {
     if (lost) return;
-    // Ray marching is expensive: start with fewer pixels, especially on phones.
-    // Keep HTML text at native resolution while adapting only the WebGL canvas.
-    const ratio = quality * Math.min(devicePixelRatio || 1, coarsePointer.matches ? .85 : 1,
-      Math.sqrt(650000 / (innerWidth * innerHeight)));
+    // Match the screen's pixel density. Frame rate never lowers image quality.
+    const ratio = Math.min(devicePixelRatio || 1, 3);
     const width = Math.max(1, Math.round(innerWidth * ratio));
     const height = Math.max(1, Math.round(innerHeight * ratio));
     if (canvas.width !== width || canvas.height !== height) {
@@ -120,6 +161,13 @@ function start(gl) {
     gl.uniform2f(uniforms.viewport, innerWidth, innerHeight);
     const bounds = heading.getBoundingClientRect();
     gl.uniform4f(uniforms.logo, bounds.left, innerHeight - bounds.bottom, bounds.width, bounds.height);
+    const cellScale = Math.max(.78, Math.min(1, innerWidth / 900));
+    fieldWidth = Math.ceil(innerWidth / (9 * cellScale)) + 10;
+    fieldHeight = Math.ceil(innerHeight / (14 * cellScale)) + 10;
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, fieldTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fieldWidth, fieldHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.uniform2f(uniforms.fieldSize, fieldWidth, fieldHeight);
     if (render) draw();
   }
 
@@ -138,27 +186,6 @@ function start(gl) {
       pointer.y += (target.y - pointer.y) * easing;
       pointer.active += (target.active - pointer.active) * easing;
 
-      sampleTime += delta;
-      sampleFrames++;
-      if (sampleTime >= 750) {
-        const average = sampleTime / sampleFrames;
-        const previous = quality;
-        if (average > 22) {
-          quality = Math.max(.5, quality * .8);
-          smoothTime = 0;
-        } else if (average < 18) {
-          smoothTime += sampleTime;
-          if (smoothTime >= 4000) {
-            quality = Math.min(1, quality + .05);
-            smoothTime = 0;
-          }
-        } else {
-          smoothTime = 0;
-        }
-        sampleTime = 0;
-        sampleFrames = 0;
-        if (quality !== previous) resize(false);
-      }
       draw();
     }
     frame = requestAnimationFrame(tick);
@@ -168,9 +195,6 @@ function start(gl) {
     if (frame !== null) cancelAnimationFrame(frame);
     frame = null;
     last = null;
-    sampleTime = 0;
-    sampleFrames = 0;
-    smoothTime = 0;
     if (!paused && !document.hidden && !lost) frame = requestAnimationFrame(tick);
   }
 
@@ -231,12 +255,18 @@ function makeWordmark() {
   distanceTransform(outside, width, height);
   // Pack 16-bit distances into RG to avoid terracing along the curved bevels.
   const data = new Uint8Array(width * height * 4);
+  const signed = new Float64Array(inside.length);
+  for (let i = 0; i < signed.length; i++) signed[i] = Math.sqrt(outside[i]) - Math.sqrt(inside[i]);
   for (let i = 0; i < inside.length; i++) {
-    const signed = Math.sqrt(outside[i]) - Math.sqrt(inside[i]);
-    const value = Math.round(Math.max(0, Math.min(1, .5 + signed / 256)) * 65535);
+    const value = Math.round(Math.max(0, Math.min(1, .5 + signed[i] / 256)) * 65535);
     data[i * 4] = value >> 8;
     data[i * 4 + 1] = value & 255;
-    data[i * 4 + 3] = 255;
+    const x = i % width;
+    const dx = signed[x === width - 1 ? i : i + 1] - signed[x === 0 ? i : i - 1];
+    const dy = signed[Math.min(signed.length - 1, i + width)] - signed[Math.max(0, i - width)];
+    const length = Math.hypot(dx, dy) || 1;
+    data[i * 4 + 2] = Math.round((.5 - dx / length * .5) * 255);
+    data[i * 4 + 3] = Math.round((.5 + dy / length * .5) * 255);
   }
   return { width, height, data };
 }
