@@ -1,4 +1,4 @@
-import { vertexSource, fragmentSource } from './shader.js';
+import { vertexSource, fragmentSource } from './shader.js?v=15e61a8509e9';
 
 const canvas = document.querySelector('#scene');
 const heading = document.querySelector('h1');
@@ -80,9 +80,15 @@ function start(gl) {
 
   let elapsed = 0;
   let last = null;
+  let nextDraw = 0;
   let frame = null;
   let paused = motion.matches;
   let lost = false;
+  let quality = 1;
+  let sampleTime = 0;
+  let sampleFrames = 0;
+  let smoothTime = 0;
+  const coarsePointer = matchMedia('(pointer: coarse)');
   const target = { x: 0, y: 0, active: 0 };
   const pointer = { x: 0, y: 0, active: 0 };
   const pulse = { x: .5, y: .5, started: -10 };
@@ -97,29 +103,62 @@ function start(gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  function resize() {
+  function resize(render = true) {
     if (lost) return;
-    // Bound fragment work on large and high-density displays.
-    const ratio = Math.min(devicePixelRatio || 1, 1.25, Math.sqrt(2400000 / (innerWidth * innerHeight)));
-    canvas.width = Math.round(innerWidth * ratio);
-    canvas.height = Math.round(innerHeight * ratio);
+    // Ray marching is expensive: start with fewer pixels, especially on phones.
+    // Keep HTML text at native resolution while adapting only the WebGL canvas.
+    const ratio = quality * Math.min(devicePixelRatio || 1, coarsePointer.matches ? .85 : 1,
+      Math.sqrt(650000 / (innerWidth * innerHeight)));
+    const width = Math.max(1, Math.round(innerWidth * ratio));
+    const height = Math.max(1, Math.round(innerHeight * ratio));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
     gl.uniform2f(uniforms.viewport, innerWidth, innerHeight);
     const bounds = heading.getBoundingClientRect();
     gl.uniform4f(uniforms.logo, bounds.left, innerHeight - bounds.bottom, bounds.width, bounds.height);
-    draw();
+    if (render) draw();
   }
 
   function tick(now) {
-    if (last === null) last = now;
-    const delta = now - last;
-    if (delta >= 1000 / 30) {
-      elapsed += Math.min(delta, 100) / 1000;
-      pointer.x += (target.x - pointer.x) * .065;
-      pointer.y += (target.y - pointer.y) * .065;
-      pointer.active += (target.active - pointer.active) * .065;
+    const interval = 1000 / 60;
+    if (last === null) nextDraw = now;
+    if (now + .5 >= nextDraw) {
+      const delta = last === null ? interval : now - last;
       last = now;
+      // Preserve the deadline instead of dropping frames on rounding at 60 Hz.
+      nextDraw += interval * Math.max(1, Math.floor((now - nextDraw) / interval) + 1);
+      const seconds = Math.min(delta, 100) / 1000;
+      elapsed += seconds;
+      const easing = 1 - Math.exp(-2 * seconds);
+      pointer.x += (target.x - pointer.x) * easing;
+      pointer.y += (target.y - pointer.y) * easing;
+      pointer.active += (target.active - pointer.active) * easing;
+
+      sampleTime += delta;
+      sampleFrames++;
+      if (sampleTime >= 750) {
+        const average = sampleTime / sampleFrames;
+        const previous = quality;
+        if (average > 22) {
+          quality = Math.max(.5, quality * .8);
+          smoothTime = 0;
+        } else if (average < 18) {
+          smoothTime += sampleTime;
+          if (smoothTime >= 4000) {
+            quality = Math.min(1, quality + .05);
+            smoothTime = 0;
+          }
+        } else {
+          smoothTime = 0;
+        }
+        sampleTime = 0;
+        sampleFrames = 0;
+        if (quality !== previous) resize(false);
+      }
       draw();
     }
     frame = requestAnimationFrame(tick);
@@ -129,6 +168,9 @@ function start(gl) {
     if (frame !== null) cancelAnimationFrame(frame);
     frame = null;
     last = null;
+    sampleTime = 0;
+    sampleFrames = 0;
+    smoothTime = 0;
     if (!paused && !document.hidden && !lost) frame = requestAnimationFrame(tick);
   }
 
