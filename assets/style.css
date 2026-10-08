@@ -1,0 +1,54 @@
+:root {
+  color-scheme: dark;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  color: #e1eaf0;
+  background: #070b10;
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+.world {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 50%, #14242b, #070b10 75%);
+}
+canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.identity {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(86vw, 1180px);
+  text-align: center;
+  pointer-events: none;
+}
+h1 {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: min(22vw, 300px);
+  font-weight: 900;
+  line-height: .8;
+  letter-spacing: -.04em;
+  color: #dceaf0;
+}
+.shader-ready h1 { color: transparent; }
+.identity p {
+  margin: clamp(24px, 3vw, 44px) 0 0;
+  font-size: 11px;
+  line-height: 1.9;
+  letter-spacing: 2px;
+  color: #bbccd3;
+  text-shadow: 0 1px 8px #070b1080;
+}
+@media (max-width: 600px) {
+  .identity { width: 91vw; }
+  .identity p { margin-top: 26px; font-size: 9px; letter-spacing: .65px; }
+}
+@media (max-height: 450px) {
+  .identity { width: min(74vw, 650px); }
+  .identity p { margin-top: 20px; font-size: 9px; line-height: 1.6; }
+}
