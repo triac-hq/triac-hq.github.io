@@ -8,13 +8,20 @@
     <title>TRIAC — The Robotics, Intelligence & Automation Company</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="assets/style.css">
-    <script type="module" src="assets/main.js"></script>
+    <script>document.documentElement.classList.add('loading');</script>
+    <script type="module">
+      import('./assets/main.js')
+        .catch(error => console.warn('Using the static TRIAC wordmark.', error))
+        .finally(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+          document.documentElement.classList.remove('loading');
+        })));
+    </script>
   </head>
   <body>
     <main class="world" aria-label="TRIAC">
       <canvas id="scene" aria-hidden="true"></canvas>
       <header class="identity">
-        <h1>TRIAC</h1>
+        <h1><img src="assets/wordmark.svg" alt="TRIAC" width="1024" height="256"></h1>
         <p>The Robotics, Intelligence<br>&amp; Automation Company</p>
       </header>
     </main>

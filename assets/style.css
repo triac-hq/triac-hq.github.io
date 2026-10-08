@@ -11,7 +11,9 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
   inset: 0;
   overflow: hidden;
   background: radial-gradient(ellipse at 50% 50%, #14242b, #070b10 75%);
+  transition: opacity 900ms ease;
 }
+.loading .world { opacity: 0; }
 canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .identity {
   position: absolute;
@@ -28,14 +30,9 @@ h1 {
   width: 100%;
   aspect-ratio: 4;
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: min(22vw, 300px);
-  font-weight: 900;
-  line-height: .8;
-  letter-spacing: -.04em;
-  color: #dceaf0;
 }
-.shader-ready h1 { color: transparent; }
+h1 img { display: block; width: 100%; height: auto; }
+.shader-ready h1 img { visibility: hidden; }
 .identity p {
   margin: clamp(24px, 3vw, 44px) 0 0;
   font-size: 11px;
@@ -51,4 +48,7 @@ h1 {
 @media (max-height: 450px) {
   .identity { width: min(74vw, 650px); }
   .identity p { margin-top: 20px; font-size: 9px; line-height: 1.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world { transition: none; }
 }

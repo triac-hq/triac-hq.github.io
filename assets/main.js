@@ -2,12 +2,16 @@ import { vertexSource, fragmentSource } from './shader.js';
 
 const canvas = document.querySelector('#scene');
 const heading = document.querySelector('h1');
+const wordmark = heading.querySelector('img');
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
+await wordmark.decode();
 let gl;
 try { gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'low-power' }); } catch { /* Keep the HTML wordmark. */ }
 
 if (gl) {
-  try { start(gl); }
+  try {
+    start(gl);
+  }
   catch (error) {
     canvas.style.visibility = 'hidden';
     document.documentElement.classList.remove('shader-ready');
@@ -170,21 +174,8 @@ function makeWordmark() {
   source.width = width;
   source.height = height;
   const ink = source.getContext('2d', { willReadFrequently: true });
-  ink.font = '900 560px Arial, Helvetica, sans-serif';
-  const letters = [...'TRIAC'];
-  const tracking = 18;
-  const measured = letters.map(letter => ink.measureText(letter));
-  const total = measured.reduce((sum, item) => sum + item.width, 0) + tracking * 4;
-  const ascent = Math.max(...measured.map(item => item.actualBoundingBoxAscent));
-  const descent = Math.max(...measured.map(item => item.actualBoundingBoxDescent));
-  ink.translate(48, 32);
-  ink.scale((width - 96) / total, (height - 64) / (ascent + descent));
-  ink.fillStyle = '#fff';
-  let x = 0;
-  letters.forEach((letter, index) => {
-    ink.fillText(letter, x, ascent);
-    x += measured[index].width + tracking;
-  });
+  // Share the vector artwork with the static fallback; no font swap on load.
+  ink.drawImage(wordmark, 0, 0, width, height);
 
   const pixels = ink.getImageData(0, 0, width, height).data;
   const inside = new Float64Array(width * height);
