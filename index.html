@@ -4,15 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#070b10">
-    <meta name="description" content="TRIAC builds the software and intelligence behind physical systems. Robotics, embedded control, applied AI, telemetry and simulation, engineered together.">
-    <meta property="og:title" content="TRIAC — Hard problems. Working systems.">
-    <meta property="og:description" content="Robotics, embedded systems and applied AI. Engineering the whole path from the first signal to a working machine.">
+    <meta name="description" content="Embedded firmware, robotics, AI, telemetry and simulation. TRIAC develops software for machines and connected devices.">
+    <meta property="og:title" content="TRIAC — Robotics &amp; embedded systems">
+    <meta property="og:description" content="Firmware, control software and AI for machines and connected devices.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.triac.dev/">
     <title>TRIAC — Robotics, Intelligence & Automation</title>
     <link rel="canonical" href="https://www.triac.dev/">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="assets/style.css?v=fd4bcc9138b7">
+    <link rel="stylesheet" href="assets/style.css?v=52e82e72eee0">
     <script>document.documentElement.classList.add('loading');</script>
     <script type="module">
       import('./assets/main.js?v=fcb98d8d869d')
@@ -29,9 +29,8 @@
         <img src="assets/wordmark.svg?v=419cec82afd9" alt="TRIAC" width="1024" height="256">
       </a>
       <nav aria-label="Main navigation">
-        <a href="#capabilities">Capabilities</a>
-        <a href="#approach">Approach</a>
-        <a class="nav-contact" href="#contact">Let’s build <span aria-hidden="true">↗</span></a>
+        <a href="#capabilities">Services</a>
+        <a class="nav-contact" href="#contact">Contact <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
     <main id="main">
@@ -39,91 +38,72 @@
         <div class="world" aria-hidden="true">
           <canvas id="scene"></canvas>
           <div class="wordmark"><img src="assets/wordmark.svg?v=419cec82afd9" alt="" width="1024" height="256"></div>
-          <div class="art-caption wrap"><span>THE ROBOTICS, INTELLIGENCE &amp; AUTOMATION COMPANY</span><span class="art-coordinate">SIGNAL → SYSTEM</span></div>
+          <div class="art-caption wrap"><span>THE ROBOTICS, INTELLIGENCE &amp; AUTOMATION COMPANY</span></div>
         </div>
         <div class="art-controls wrap">
           <button class="motion-toggle" type="button" hidden>Pause motion</button>
         </div>
         <div class="hero-copy wrap">
-          <h1 id="hero-title">Hard problems.<br><span>Working systems.</span></h1>
+          <h1 id="hero-title">Robotics.<br><span>Embedded systems.</span></h1>
           <div class="hero-intro">
-            <p>We build the software and intelligence behind physical systems. From real-time control to applied AI, telemetry and the interface in your hand.</p>
-            <a class="text-link" href="#capabilities">See what we build <span aria-hidden="true">↓</span></a>
+            <p>Firmware, control software and AI for machines and connected devices.</p>
+            <a class="text-link" href="#capabilities">Our services <span aria-hidden="true">↓</span></a>
           </div>
-        </div>
-        <div class="signal-chain wrap" aria-label="Engineering across the whole system">
-          <span>Firmware</span><span aria-hidden="true">→</span><span>Control</span><span aria-hidden="true">→</span><span>Telemetry</span><span aria-hidden="true">→</span><span>Interface</span>
         </div>
       </section>
 
       <section class="capabilities wrap" id="capabilities" aria-labelledby="capabilities-title">
         <div class="section-heading">
-          <p class="eyebrow">01 / CAPABILITIES</p>
-          <h2 id="capabilities-title">The whole system.<br>Every critical detail.</h2>
-          <p class="section-intro">Experience across vehicle systems, motor control, flight-control development and AI-powered analytics. Depth in each layer. A clear view of the whole.</p>
+          <p class="eyebrow">01 / SERVICES</p>
+          <h2 id="capabilities-title">What we build</h2>
         </div>
         <div class="offering-list">
           <article class="offering">
-            <div class="offering-index"><span>01</span><span>MAKE IT MOVE</span></div>
+            <div class="offering-index"><span>01</span></div>
             <div class="offering-copy">
-              <h3>Robotics &amp; embedded systems</h3>
-              <p>Firmware, control loops, motor systems and the networks between them. We bring up hardware, connect the pieces and turn signals into controlled motion.</p>
+              <h3>Robotics &amp; firmware</h3>
+              <p>Firmware for motor control, sensors and vehicle networks. Hardware bring-up and device integration.</p>
             </div>
             <ul class="specialisms" aria-label="Robotics and embedded capabilities">
-              <li>Real-time control</li>
-              <li>CAN &amp; Ethernet integration</li>
-              <li>Sensors &amp; motor drives</li>
+              <li>C &amp; Rust</li>
+              <li>Zephyr &amp; ESP-IDF</li>
+              <li>CAN &amp; Ethernet</li>
             </ul>
           </article>
           <article class="offering">
-            <div class="offering-index"><span>02</span><span>MAKE IT LEGIBLE</span></div>
+            <div class="offering-index"><span>02</span></div>
             <div class="offering-copy">
-              <h3>Applied AI &amp; connected systems</h3>
-              <p>Turn machine data into decisions. We connect live telemetry, large-scale analytics and applied AI with clear interfaces for the people running the system.</p>
+              <h3>AI &amp; telemetry</h3>
+              <p>Data collection, AI-assisted analysis and operational dashboards. Live device diagnostics and recorded-session replay.</p>
             </div>
             <ul class="specialisms" aria-label="Intelligence and interface capabilities">
-              <li>AI &amp; operational analytics</li>
+              <li>Operational analytics</li>
               <li>Device-to-cloud telemetry</li>
-              <li>Dashboards &amp; 3D replay</li>
+              <li>Web &amp; embedded interfaces</li>
             </ul>
           </article>
           <article class="offering">
-            <div class="offering-index"><span>03</span><span>MAKE IT REPEATABLE</span></div>
+            <div class="offering-index"><span>03</span></div>
             <div class="offering-copy">
-              <h3>Simulation &amp; automation</h3>
-              <p>Build the virtual counterpart, exercise the control logic and make failures reproducible. Automated tests and deployment tools turn experiments into a repeatable engineering process.</p>
+              <h3>Simulation &amp; testing</h3>
+              <p>Control-loop simulation, hardware-in-the-loop testing and fault injection.</p>
             </div>
             <ul class="specialisms" aria-label="Simulation and automation capabilities">
               <li>Digital twins</li>
-              <li>Hardware-in-the-loop tooling</li>
-              <li>Automated validation</li>
+              <li>Automated regression tests</li>
+              <li>Build &amp; deployment tools</li>
             </ul>
           </article>
-        </div>
-      </section>
-
-      <section class="approach" id="approach" aria-labelledby="approach-title">
-        <div class="wrap">
-          <div class="approach-heading">
-            <p class="eyebrow">02 / APPROACH</p>
-            <h2 id="approach-title">Close the loop.</h2>
-            <p>Fast iteration. Real verification.<br>Direct collaboration from the first brief to the bench.</p>
-          </div>
-          <ol class="steps">
-            <li><span class="step-number">01 / UNDERSTAND</span><h3>Find the constraint.</h3><p>Start with the hardest unknown. Define the interfaces, the risks and what success looks like.</p></li>
-            <li><span class="step-number">02 / BUILD</span><h3>Make it work end to end.</h3><p>Connect hardware, software and the interface early. Get a working system in front of you.</p></li>
-            <li><span class="step-number">03 / VERIFY</span><h3>Test. Measure. Refine.</h3><p>Exercise behaviour, faults and recovery. Use simulation and hardware tests to guide the next iteration.</p></li>
-          </ol>
         </div>
       </section>
 
       <section class="contact wrap" id="contact" aria-labelledby="contact-title">
         <div>
-          <p class="eyebrow">03 / YOUR NEXT SYSTEM</p>
-          <h2 id="contact-title">Bring the hard part.</h2>
-          <p>A new machine. A difficult integration. A prototype ready for its next step. Let’s turn it into something that works.</p>
+          <p class="eyebrow">02 / CONTACT</p>
+          <h2 id="contact-title">Discuss a project</h2>
+          <p>Send a brief, your current setup and what you need built.</p>
         </div>
-        <a class="contact-link" href="mailto:hello@triac.dev?subject=Building%20with%20TRIAC">Let’s talk <span aria-hidden="true">↗</span><small>hello@triac.dev</small></a>
+        <a class="contact-link" href="mailto:hello@triac.dev?subject=Building%20with%20TRIAC">hello@triac.dev <span aria-hidden="true">↗</span></a>
       </section>
     </main>
     <footer class="site-footer wrap">
