@@ -32,7 +32,7 @@ h1 {
   margin: 0;
 }
 h1 img { display: block; width: 100%; height: auto; }
-.shader-ready h1 img { visibility: hidden; }
+.shader-ready h1 img { opacity: 0; }
 .identity p {
   margin: clamp(24px, 3vw, 44px) 0 0;
   font-size: 11px;
