@@ -1,8 +1,10 @@
 import { vertexSource, fragmentSource, fieldFragmentSource } from './shader.js?v=4bc47a37784f';
 
 const canvas = document.querySelector('#scene');
-const heading = document.querySelector('h1');
+const stage = document.querySelector('.world');
+const heading = document.querySelector('.wordmark');
 const wordmark = heading.querySelector('img');
+const motionToggle = document.querySelector('.motion-toggle');
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
 await wordmark.decode();
 let gl;
@@ -123,6 +125,9 @@ function start(gl) {
   let frame = null;
   let paused = motion.matches;
   let lost = false;
+  let visible = true;
+  let viewWidth = stage.clientWidth;
+  let viewHeight = stage.clientHeight;
   const target = { x: 0, y: 0, active: 0 };
   const pointer = { x: 0, y: 0, active: 0 };
   const pulse = { x: .5, y: .5, started: -10 };
@@ -133,7 +138,7 @@ function start(gl) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fieldBuffer);
     gl.viewport(0, 0, fieldWidth, fieldHeight);
     gl.uniform1f(fieldTime, elapsed);
-    gl.uniform2f(fieldViewport, innerWidth, innerHeight);
+    gl.uniform2f(fieldViewport, viewWidth, viewHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -148,22 +153,25 @@ function start(gl) {
 
   function resize(render = true) {
     if (lost) return;
+    viewWidth = stage.clientWidth;
+    viewHeight = stage.clientHeight;
     // Match the screen's pixel density. Frame rate never lowers image quality.
     const ratio = Math.min(devicePixelRatio || 1, 3);
-    const width = Math.max(1, Math.round(innerWidth * ratio));
-    const height = Math.max(1, Math.round(innerHeight * ratio));
+    const width = Math.max(1, Math.round(viewWidth * ratio));
+    const height = Math.max(1, Math.round(viewHeight * ratio));
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
     }
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
-    gl.uniform2f(uniforms.viewport, innerWidth, innerHeight);
+    gl.uniform2f(uniforms.viewport, viewWidth, viewHeight);
     const bounds = heading.getBoundingClientRect();
-    gl.uniform4f(uniforms.logo, bounds.left, innerHeight - bounds.bottom, bounds.width, bounds.height);
-    const cellScale = Math.max(.78, Math.min(1, innerWidth / 900));
-    fieldWidth = Math.ceil(innerWidth / (9 * cellScale)) + 10;
-    fieldHeight = Math.ceil(innerHeight / (14 * cellScale)) + 10;
+    const stageBounds = stage.getBoundingClientRect();
+    gl.uniform4f(uniforms.logo, bounds.left - stageBounds.left, stageBounds.bottom - bounds.bottom, bounds.width, bounds.height);
+    const cellScale = Math.max(.78, Math.min(1, viewWidth / 900));
+    fieldWidth = Math.ceil(viewWidth / (9 * cellScale)) + 10;
+    fieldHeight = Math.ceil(viewHeight / (14 * cellScale)) + 10;
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, fieldTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fieldWidth, fieldHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -195,41 +203,53 @@ function start(gl) {
     if (frame !== null) cancelAnimationFrame(frame);
     frame = null;
     last = null;
-    if (!paused && !document.hidden && !lost) frame = requestAnimationFrame(tick);
+    if (!paused && !document.hidden && !lost && visible) frame = requestAnimationFrame(tick);
   }
 
-  addEventListener('pointermove', event => {
-    target.x = event.clientX / innerWidth - .5;
-    target.y = .5 - event.clientY / innerHeight;
+  stage.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch') return;
+    const bounds = stage.getBoundingClientRect();
+    target.x = (event.clientX - bounds.left) / viewWidth - .5;
+    target.y = .5 - (event.clientY - bounds.top) / viewHeight;
     target.active = 1;
   }, { passive: true });
-  document.addEventListener('pointerleave', () => { target.x = 0; target.y = 0; target.active = 0; });
-  document.addEventListener('pointerdown', event => {
+  stage.addEventListener('pointerleave', () => { target.x = 0; target.y = 0; target.active = 0; });
+  stage.addEventListener('pointerdown', event => {
     if (paused) return;
-    pulse.x = event.clientX / innerWidth;
-    pulse.y = 1 - event.clientY / innerHeight;
+    const bounds = stage.getBoundingClientRect();
+    pulse.x = (event.clientX - bounds.left) / viewWidth;
+    pulse.y = 1 - (event.clientY - bounds.top) / viewHeight;
     pulse.started = elapsed;
   });
   document.addEventListener('visibilitychange', sync);
-  // No interface over the artwork: Space pauses; reduced motion starts still.
-  document.addEventListener('keydown', event => {
-    if (event.code !== 'Space' || event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
-    event.preventDefault();
+  function updateMotionControl() {
+    motionToggle.textContent = paused ? 'Play motion' : 'Pause motion';
+    motionToggle.setAttribute('aria-label', paused ? 'Play background animation' : 'Pause background animation');
+  }
+  motionToggle.addEventListener('click', () => {
     paused = !paused;
+    updateMotionControl();
     sync();
   });
-  motion.addEventListener('change', event => { paused = event.matches; draw(); sync(); });
+  motion.addEventListener('change', event => { paused = event.matches; updateMotionControl(); draw(); sync(); });
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
     lost = true;
     sync();
     document.documentElement.classList.remove('shader-ready');
     canvas.style.visibility = 'hidden';
+    motionToggle.hidden = true;
   });
   // A readable static wordmark remains available even if the GPU becomes unavailable.
-  new ResizeObserver(resize).observe(document.querySelector('.world'));
+  new ResizeObserver(resize).observe(stage);
+  new IntersectionObserver(entries => {
+    visible = entries[0].isIntersecting;
+    sync();
+  }).observe(stage);
   resize();
   document.documentElement.classList.add('shader-ready');
+  updateMotionControl();
+  motionToggle.hidden = false;
   sync();
 }
 
